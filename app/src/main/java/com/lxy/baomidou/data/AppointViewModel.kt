@@ -47,7 +47,7 @@ private data class AppointVMUIState(
     val isSuccess: Boolean = false,
     val errorMsg: String = "",
     val isEmpty: Boolean = true,
-    val search: SearchEntity = SearchEntity(),
+    val search: SearchEntity = SearchEntity(null,null,null,null),
     val appointList: List<AppointHistory> = emptyList(),
     val configList: List<ShopConfig> = emptyList()
 ) {
@@ -84,7 +84,6 @@ class AppointViewModel : ViewModel() {
 
     init {
         // 获取预约列表
-        // 获取配置列表
         viewModelScope.launch(Dispatchers.IO){
             val list = repo.getAppointHistoryList()
             _uiState.update{ it.copy(appointList = list)}

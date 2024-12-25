@@ -246,25 +246,29 @@ private fun EditShopConfigSheet(
         )
 
         // spts
-        OutlinedTextField(
-            value = shop.spts,
-            onValueChange = { shop = shop.copy(spts = it) },
-            label = { Text("spts") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+        shop.spts?.let {
+            OutlinedTextField(
+                value = it,
+                onValueChange = { shop = shop.copy(spts = it) },
+                label = { Text("spts") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+        }
 
         // 备注
-        OutlinedTextField(
-            value = shop.remark,
-            onValueChange = { shop = shop.copy(remark = it) },
-            label = { Text("备注") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            minLines = 3,
-            maxLines = 5
-        )
+        shop.remark?.let {
+            OutlinedTextField(
+                value = it,
+                onValueChange = { shop = shop.copy(remark = it) },
+                label = { Text("备注") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                minLines = 3,
+                maxLines = 5
+            )
+        }
     }
 }
