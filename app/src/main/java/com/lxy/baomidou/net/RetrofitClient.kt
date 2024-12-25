@@ -68,7 +68,7 @@ object RetrofitClient {
      */
     data class ApiResponse<T>(
         val code: Int = 0,
-        val message: String = "",
+        val msg: String = "",
         val data: T? = null
     ) {
         fun isSuccess() = code == 200
@@ -94,7 +94,7 @@ object RetrofitClient {
                     Result.Success(it)
                 } ?: Result.Error(Exception("Response data is null"))
             } else {
-                Result.Error(Exception(response.message))
+                Result.Error(Exception(response.msg))
             }
         } catch (e: Exception) {
             Result.Error(e)
