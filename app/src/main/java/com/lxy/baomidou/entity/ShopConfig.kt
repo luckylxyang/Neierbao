@@ -23,15 +23,15 @@ data class ShopConfig(
     /**
      * 手机号码
      */
-    val phone: String = "",
+    val phone: String? = "",
     /**
      * 备注
      */
-    val remark: String = "",
+    val remark: String? = "",
     /**
      * 推送的列表
      */
-    val spts: String = "",
+    val spts: String? = "",
     /**
      * 每天最多预约数量
      */
@@ -39,11 +39,11 @@ data class ShopConfig(
     /**
      * 预约规则
      */
-    val type: Int = 0,
+    val type: Int? = 0,
     /**
      * 预约规则详情
      */
-    val data: String = "",
+    val data: String? = "",
     /**
      * 是否已完成
      */
