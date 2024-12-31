@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.lxy.baomidou.entity.AppointHistory
 import com.lxy.baomidou.entity.ShopConfig
 import com.lxy.baomidou.entity.SearchEntity
+import com.lxy.baomidou.entity.Shop
+import com.supermap.sinfcloud.basecomponent.ext.launchSafety
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,10 +27,12 @@ sealed interface ShopUIState {
     val isLoading: Boolean
     val isSuccess: Boolean
     val errorMsg: String
+    val showDialog: Boolean
 
     data class InitOrEmpty(
         val isEmpty: Boolean,
         override val errorMsg: String,
+        override val showDialog: Boolean,
         override val isSuccess: Boolean,
         override val isLoading: Boolean
     ) : ShopUIState
@@ -38,8 +42,10 @@ sealed interface ShopUIState {
         override val isSuccess: Boolean,
         override val errorMsg: String,
         val shopList: List<ShopConfig>,
+        val cityList: List<Shop>,
         val selectedShop: ShopConfig,
-        val isDeleteModel: Boolean
+        val isDeleteModel: Boolean,
+        override val showDialog: Boolean
     ) : ShopUIState
 }
 
@@ -49,7 +55,9 @@ private data class ShopVMUIState(
     val errorMsg: String = "",
     val isEmpty: Boolean = true,
     val selectedShop: ShopConfig = ShopConfig(),
+    val showDialog: Boolean = false,
     val shopList: List<ShopConfig> = emptyList(),
+    val cityList: List<Shop> = emptyList(),
     val isDeleteModel: Boolean = false
 ) {
     fun toUIState(): ShopUIState = if (shopList.isEmpty()) {
@@ -57,6 +65,7 @@ private data class ShopVMUIState(
             isEmpty = true,
             isLoading = isLoading,
             isSuccess = isSuccess,
+            showDialog = showDialog,
             errorMsg = errorMsg
         )
     } else {
@@ -67,11 +76,13 @@ private data class ShopVMUIState(
             shopList = shopList,
             isDeleteModel = isDeleteModel,
             selectedShop = selectedShop,
+            cityList = cityList,
+            showDialog = showDialog,
         )
     }
 }
 
-class ShopViewModel: ViewModel() {
+class ShopViewModel : ViewModel() {
 
     private val repo = AppRepo()
 
@@ -83,9 +94,13 @@ class ShopViewModel: ViewModel() {
         )
 
     init {
-        viewModelScope.launch(Dispatchers.IO){
+        getShopConfigList()
+    }
+
+    fun getShopConfigList() {
+        viewModelScope.launch(Dispatchers.IO) {
             val list = repo.getShopConfigList()
-            _uiState.update{ it.copy(shopList = list)}
+            _uiState.update { it.copy(shopList = list, isLoading = false) }
         }
     }
 
@@ -94,25 +109,48 @@ class ShopViewModel: ViewModel() {
         isSuccess: Boolean? = null,
         errorMsg: String? = null,
         isEmpty: Boolean? = null,
-        selectedShop: ShopConfig? =  null,
+        selectedShop: ShopConfig? = null,
         shopList: List<ShopConfig>? = null,
-        isDeleteModel: Boolean? = null
-    ){
+        cityList: List<Shop>? = null,
+        isDeleteModel: Boolean? = null,
+        showDialog: Boolean? = null
+    ) {
         _uiState.update {
             it.copy(
-                isLoading = isLoading?: it.isLoading,
-                isSuccess = isSuccess?: it.isSuccess,
-                errorMsg = errorMsg?: it.errorMsg,
-                isEmpty = isEmpty?: it.isEmpty,
-                selectedShop = selectedShop?: it.selectedShop,
-                shopList = shopList?: it.shopList,
-                isDeleteModel = isDeleteModel?: it.isDeleteModel,
-
+                isLoading = isLoading ?: it.isLoading,
+                isSuccess = isSuccess ?: it.isSuccess,
+                errorMsg = errorMsg ?: it.errorMsg,
+                isEmpty = isEmpty ?: it.isEmpty,
+                selectedShop = selectedShop ?: it.selectedShop,
+                shopList = shopList ?: it.shopList,
+                isDeleteModel = isDeleteModel ?: it.isDeleteModel,
+                showDialog = showDialog ?: it.showDialog,
+                cityList = cityList ?: it.cityList
             )
         }
     }
 
-    fun saveShopConfig(shop: ShopConfig){
-        repo.saveShopConfig(shop)
+
+    fun saveShopConfig(shop: ShopConfig) {
+        refreshUIState(isLoading = true)
+        viewModelScope.launchSafety(Dispatchers.IO) {
+            repo.updateShopConfig(shop)
+        }.onSuccess { unit ->
+            getShopConfigList()
+        }.onCatch { e -> e.printStackTrace() }
+            .onComplete { unit -> refreshUIState(isLoading = false) }
+    }
+
+
+    fun addShopConfig(shop: ShopConfig) {
+        refreshUIState(isLoading = true)
+
+        viewModelScope.launchSafety(Dispatchers.IO) {
+            repo.addShopConfig(shop.copy(id = 0))
+        }.onSuccess { unit ->
+            refreshUIState(showDialog = false)
+            getShopConfigList()
+        }.onCatch { e -> e.printStackTrace() }
+            .onComplete { unit -> refreshUIState(isLoading = false) }
     }
 }

@@ -6,8 +6,11 @@ package com.lxy.baomidou.entity
  * @Desc
  */
 data class SearchEntity(
-    val phone: String?,
-    val status: Int?,
-    val type: Int?,
-    var shopIds: List<String>?,
+    val phone: String = "",
+    val status: Int = AppointStatus.PENDING.value,
+    val type: Int = AppointType.DEFAULT.value,
+    val areaId: String = "",
+    val areaName: String = "",
+    val shopName: String = "",
+    var shopId: String = "",
 )

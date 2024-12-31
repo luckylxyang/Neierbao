@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lxy.baomidou.data.AppViewModel
 import com.lxy.baomidou.ui.ShopConfigScreenPage
 import com.lxy.baomidou.ui.approval.ReservationRecordListPage
 import com.lxy.baomidou.ui.theme.BaomidouTheme
@@ -41,10 +43,13 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreenPage() {
+fun MainScreenPage(
+    appModel: AppViewModel = viewModel()
+) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("预约列表", "配置信息")
     val pagerState = rememberPagerState(initialPage = 0){2}
+
 
     LaunchedEffect(selectedTabIndex) {
         pagerState.animateScrollToPage(selectedTabIndex)
@@ -75,8 +80,8 @@ fun MainScreenPage() {
                 modifier = Modifier.weight(1f)
             ) { page ->
                 when (page) {
-                    0 -> ReservationRecordListPage()
-                    1 -> ShopConfigScreenPage()
+                    0 -> ReservationRecordListPage(appModel = appModel)
+                    1 -> ShopConfigScreenPage(appModel = appModel)
                 }
             }
         }

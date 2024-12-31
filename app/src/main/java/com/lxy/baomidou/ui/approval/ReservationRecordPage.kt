@@ -1,27 +1,34 @@
 package com.lxy.baomidou.ui.approval
 
 import androidx.compose.foundation.clickable
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import com.google.accompanist.pager.*
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lxy.baomidou.data.AppViewModel
 import com.lxy.baomidou.data.AppointUIState
 import com.lxy.baomidou.data.AppointViewModel
 import com.lxy.baomidou.entity.AppointHistory
-import com.lxy.baomidou.entity.SearchEntity
 import com.lxy.baomidou.ui.common.EmptyContentPage
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardType
+import com.lxy.baomidou.ui.common.LoadingPage
+import androidx.compose.ui.graphics.Color
 
 /**
  * @Author liuxy
@@ -32,167 +39,137 @@ import com.lxy.baomidou.ui.common.EmptyContentPage
 /**
  * 预约记录列表页面
  */
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationRecordListPage(
-    mViewModel: AppointViewModel = viewModel()
+    mViewModel: AppointViewModel = viewModel(),
+    appModel: AppViewModel
 ) {
+    var showDetailSheet by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
+    var selectedAppoint by remember { mutableStateOf<AppointHistory?>(null) }
+    val bottomSheetState = rememberModalBottomSheetState()
     val uiState by mViewModel.uiState.collectAsState()
-    Column(
+    val shopList by appModel.shopList.collectAsState()
+    LaunchedEffect(shopList) {
+        mViewModel.createDialogData(shopList)
+    }
+    val refreshState = rememberPullRefreshState(
+        refreshing = uiState.isLoading,
+        onRefresh = {
+            mViewModel.refreshUiState(isLoading = true)
+            mViewModel.getAppointList()
+        }
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .pullRefresh(refreshState)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            SearchBarPage(
+                searchEntity = uiState.search,
+                dialogData = uiState.dialogDataList,
+                onCityClick = {
+                    mViewModel.onCitySelect(it, shopList)
+                },
+                onSearch = {
+                    mViewModel.refreshUiState(isLoading = true)
+                    mViewModel.getAppointList()
+                },
+                onChange = { key, value ->
+                    // 搜索回调
+                    mViewModel.where(key, value)
+                }
+            )
 
-//        SearchContent()
-        when (uiState) {
-            is AppointUIState.InitOrEmpty -> EmptyContentPage()
-            is AppointUIState.Success -> {
-                val success = uiState as AppointUIState.Success
-                // 预约列表
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(success.appointList) { item ->
-                        ReservationCard(
-                            item = item,
-                            onItemClick = {
-
-                            })
+            when (uiState) {
+                is AppointUIState.InitOrEmpty -> EmptyContentPage()
+                is AppointUIState.Success -> {
+                    val success = uiState as AppointUIState.Success
+                    // 预约列表
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(success.appointList) { item ->
+                            ReservationCard(
+                                item = item,
+                                onItemClick = {
+                                    selectedAppoint = item
+                                    showDetailSheet = true
+                                },
+                                onCancel = {
+                                    selectedAppoint = item
+                                    showCancelDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-
-@Composable
-private fun SearchContent(
-    searchEntity: SearchEntity,
-    onChange:()-> Unit
-) {
-    // 筛选条件区域
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // 第一行：城市和地名
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 城市选择
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { /* TODO: 实现城市选择 */ }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("重庆")
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null
-                    )
-                }
-            }
-
-            // 地名选择
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { /* TODO: 实现地名选择 */ }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("光环购物公园店")
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null
-                    )
-                }
-            }
+        if (uiState.isLoading) {
+            LoadingPage()
         }
 
-        // 第二行：状态和类型
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 状态选择
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { /* TODO: 实现状态选择 */ }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("待使用")
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null
-                    )
-                }
-            }
-
-            // 类型选择
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { /* TODO: 实现类型选择 */ }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("默认")
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null
-                    )
-                }
-            }
-        }
+        // 刷新指示器
+        PullRefreshIndicator(
+            refreshing = uiState.isLoading,
+            state = refreshState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 
-    // 搜索框
-    OutlinedTextField(
-        value = "",
-        onValueChange = { /* TODO: 实现搜索功能 */ },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        placeholder = { Text("请输入手机号") },
-        trailingIcon = {
-            TextButton(
-                onClick = { /* TODO: 实现搜索功能 */ },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("搜索")
-            }
+    // 底部弹出的详情页
+    if (showDetailSheet && selectedAppoint != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showDetailSheet = false },
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            AppointDetailContent(
+                appoint = selectedAppoint!!,
+                onPhoneChange = { newPhone ->
+                    // 处理电话号码修改
+                    selectedAppoint = selectedAppoint?.copy(phone = newPhone)
+                },
+                onDismiss = { showDetailSheet = false },
+                onSave = {
+                    // 处理保存逻辑
+                    mViewModel.updatePhone(selectedAppoint!!)
+                    showDetailSheet = false
+                }
+            )
         }
-    )
-
+    }
+    if (showCancelDialog && selectedAppoint != null) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("取消预约") },
+            text = { Text("确定要取消预约吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCancelDialog = false
+                    mViewModel.cancelApt(selectedAppoint!!)
+                }) {
+                    Text("确定")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showCancelDialog = false }) { Text("取消") } }
+        )
+    }
 }
 
 @Composable
 private fun ReservationCard(
     item: AppointHistory,
-    onItemClick: () -> Unit
+    onItemClick: () -> Unit,
+    onCancel: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -248,6 +225,97 @@ private fun ReservationCard(
                 Text("类型")
                 Text(text = item.getTypeDesc())
             }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "取消预约",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clickable { onCancel() }
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun AppointDetailContent(
+    appoint: AppointHistory,
+    onPhoneChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // 顶部标题栏
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "关闭")
+            }
+            Text("预约详情", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = onSave) {
+                Text("保存")
+            }
+        }
+
+        // 可编辑的电话号码
+        OutlinedTextField(
+            value = appoint.phone,
+            onValueChange = { newValue ->
+                if (newValue.length <= 11 && newValue.all { it.isDigit() }) {
+                    onPhoneChange(newValue)
+                }
+            },
+            label = { Text("电话号码") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true
+        )
+
+        // 只读信息展示
+        DetailItem("门店", appoint.shopName)
+        DetailItem("预约日期", appoint.appointmentDate)
+        DetailItem("门票类型", appoint.ticketName)
+        DetailItem("状态", appoint.getStatusDesc())
+        DetailItem("类型", appoint.getTypeDesc())
+        DetailItem("创建时间", appoint.createTime)
+    }
+}
+
+@Composable
+private fun DetailItem(
+    label: String,
+    value: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
