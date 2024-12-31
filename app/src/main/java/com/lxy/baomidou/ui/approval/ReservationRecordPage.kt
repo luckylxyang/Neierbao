@@ -1,5 +1,6 @@
 package com.lxy.baomidou.ui.approval
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.text.input.KeyboardType
 import com.lxy.baomidou.ui.common.LoadingPage
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.lxy.baomidou.ui.common.ToastPage
 
 /**
  * @Author liuxy
@@ -47,10 +50,12 @@ fun ReservationRecordListPage(
 ) {
     var showDetailSheet by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showTipsDialog by remember { mutableStateOf(false) }
     var selectedAppoint by remember { mutableStateOf<AppointHistory?>(null) }
     val bottomSheetState = rememberModalBottomSheetState()
     val uiState by mViewModel.uiState.collectAsState()
     val shopList by appModel.shopList.collectAsState()
+    val context = LocalContext.current
     LaunchedEffect(shopList) {
         mViewModel.createDialogData(shopList)
     }
@@ -115,6 +120,27 @@ fun ReservationRecordListPage(
         }
         if (uiState.isLoading) {
             LoadingPage()
+        }
+        if (uiState.isSuccess){
+            ToastPage( "操作成功")
+            mViewModel.refreshUiState(isSuccess = false)
+//            Toast.makeText(context, "操作成功", Toast.LENGTH_SHORT).show()
+        }
+        if (uiState.errorMsg.isNotEmpty()){
+            // 弹 dialog 
+            AlertDialog(
+                onDismissRequest = { showTipsDialog = false },
+                title = { Text("操作失败") },
+                text = { Text(uiState.errorMsg) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showTipsDialog = false
+                        mViewModel.refreshUiState(errorMsg = "")
+                    }) {
+                        Text("确定")
+                    }
+                }
+            )
         }
 
         // 刷新指示器

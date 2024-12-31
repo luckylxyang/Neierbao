@@ -1,5 +1,6 @@
 package com.lxy.baomidou.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,8 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lxy.baomidou.data.AppViewModel
@@ -45,6 +48,8 @@ fun ShopConfigScreenPage(
     val bottomSheetState = rememberModalBottomSheetState()
     val cityShop by appModel.shopList.collectAsState()
     val dialogDataList by appModel.dialogDataList.collectAsState()
+    var showTipsDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     LaunchedEffect(cityShop) {
         appModel.createDialogData(cityShop)
     }
@@ -115,6 +120,26 @@ fun ShopConfigScreenPage(
                     }
                 }
             }
+        }
+        if (uiState.isSuccess){
+            Toast.makeText(context, "操作成功", Toast.LENGTH_SHORT).show()
+            mViewModel.refreshUIState(isSuccess = false)
+        }
+        if (uiState.errorMsg.isNotEmpty()){
+            // 弹 dialog
+            AlertDialog(
+                onDismissRequest = { showTipsDialog = false },
+                title = { Text("操作失败") },
+                text = { Text(uiState.errorMsg) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showTipsDialog = false
+                        mViewModel.refreshUIState(errorMsg = "")
+                    }) {
+                        Text("确定")
+                    }
+                }
+            )
         }
 
         // 添加刷新指示器
@@ -303,13 +328,27 @@ private fun EditShopConfigSheet(
 
         // 等待数量
         OutlinedTextField(
-            value = "${shopConfig.maxCountPerDay}",
-            onValueChange = { shopConfig = shopConfig.copy(maxCountPerDay = it.toInt()) },
+            value = if (shopConfig.maxCountPerDay == 0) "" else "${shopConfig.maxCountPerDay}",
+            onValueChange = { newValue ->
+                shopConfig = when {
+                    newValue.isEmpty() -> shopConfig.copy(maxCountPerDay = 0)
+                    newValue.all { it.isDigit() } -> try {
+                        shopConfig.copy(maxCountPerDay = newValue.toInt())
+                    } catch (e: NumberFormatException) {
+                        shopConfig
+                    }
+                    else -> shopConfig
+                }
+            },
             label = { Text("每日数量") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            singleLine = true
         )
 
         // spts

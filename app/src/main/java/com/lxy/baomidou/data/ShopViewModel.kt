@@ -136,21 +136,25 @@ class ShopViewModel : ViewModel() {
         viewModelScope.launchSafety(Dispatchers.IO) {
             repo.updateShopConfig(shop)
         }.onSuccess { unit ->
+            refreshUIState(isSuccess = true)
             getShopConfigList()
-        }.onCatch { e -> e.printStackTrace() }
-            .onComplete { unit -> refreshUIState(isLoading = false) }
+        }.onCatch { e ->
+            refreshUIState(isSuccess = false, errorMsg = "保存失败")
+            e.printStackTrace()
+        }.onComplete { unit -> refreshUIState(isLoading = false) }
     }
 
 
     fun addShopConfig(shop: ShopConfig) {
         refreshUIState(isLoading = true)
-
         viewModelScope.launchSafety(Dispatchers.IO) {
             repo.addShopConfig(shop.copy(id = 0))
         }.onSuccess { unit ->
-            refreshUIState(showDialog = false)
+            refreshUIState(isSuccess = true, showDialog = false)
             getShopConfigList()
-        }.onCatch { e -> e.printStackTrace() }
-            .onComplete { unit -> refreshUIState(isLoading = false) }
+        }.onCatch { e ->
+            refreshUIState(isSuccess = false, errorMsg = "添加失败")
+            e.printStackTrace()
+        }.onComplete { unit -> refreshUIState(isLoading = false) }
     }
 }

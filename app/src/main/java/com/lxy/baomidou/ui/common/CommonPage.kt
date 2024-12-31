@@ -1,5 +1,6 @@
 package com.lxy.baomidou.ui.common
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 /**
@@ -52,4 +54,12 @@ fun LoadingPage(
             color = Color.White
         )
     }
+}
+
+@Composable
+fun ToastPage(
+    message: String
+){
+    val context = LocalContext.current
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }

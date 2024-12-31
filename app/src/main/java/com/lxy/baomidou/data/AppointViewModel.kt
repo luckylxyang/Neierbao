@@ -234,8 +234,10 @@ class AppointViewModel : ViewModel() {
         viewModelScope.launchSafety(Dispatchers.IO){
             repo.updatePhone(history)
         }.onSuccess {
+            refreshUiState(isSuccess = true)
             getAppointList()
         }.onCatch{
+            refreshUiState(isSuccess = false, errorMsg = "更新失败")
             it.printStackTrace()
         }.onComplete {
             refreshUiState(isLoading = false)
@@ -250,8 +252,10 @@ class AppointViewModel : ViewModel() {
         viewModelScope.launchSafety(Dispatchers.IO){
             repo.cancelApt(history)
         }.onSuccess {
+            refreshUiState(isSuccess = true)
             getAppointList()
         }.onCatch{
+            refreshUiState(isSuccess = false, errorMsg = "取消预约失败")
             it.printStackTrace()
         }.onComplete {
             refreshUiState(isLoading = false)
